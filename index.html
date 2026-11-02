@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PesoPlan — Personal Budget Tracker</title>
+<style>
+:root {
+  --site-primary: #315c4c;
+  --site-on-primary: #ffffff;
+  --site-secondary: #e8bd72;
+  --site-on-secondary: #332719;
+  --site-background: #f4f2e9;
+  --site-on-background: #24332d;
+  --site-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --site-font-heading: Georgia, "Times New Roman", serif;
+  --site-heading-scale: 1;
+  --site-spacing-scale: 1;
+  --site-radius-scale: 1;
+  --site-decoration-opacity: 1;
+  color-scheme: light dark;
+  --surface: light-dark(#fffefa, #202a26);
+  --surface-soft: light-dark(#eeeee5, #293630);
+  --text: light-dark(#24332d, #edf2ed);
+  --muted: light-dark(#718078, #aab8af);
+  --line: light-dark(#e2e5dc, #3b4941);
+  --good: #287a55;
+  --bad: #b64d45;
+  --shadow: 0 12px 34px rgba(32, 48, 39, .07);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--site-font-body); background: var(--site-background); color: var(--text); }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+#app { min-height: 100vh; width: 100%; background-color: var(--site-background); color: var(--site-on-background); border-radius: 0; }
+.topbar { background: var(--site-primary); color: var(--site-on-primary); padding: calc(18px * var(--site-spacing-scale)) max(22px, calc((100vw - 1180px)/2)); display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.brand { display:flex; align-items:center; gap:12px; }
+.brand-mark { width:42px; height:42px; border-radius:14px; background:var(--site-secondary); color:var(--site-on-secondary); display:grid; place-items:center; font-size:22px; font-weight:800; }
+.brand h1 { margin:0; font-family:var(--site-font-heading); font-size:calc(25px * var(--site-heading-scale)); letter-spacing:-.5px; }
+.brand small { display:block; color:rgba(255,255,255,.72); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
+.top-actions { display:flex; align-items:center; gap:10px; color:rgba(255,255,255,.82); font-size:12px; }
+.pill { border:1px solid rgba(255,255,255,.28); border-radius:999px; padding:8px 12px; }
+main { max-width:1180px; margin:0 auto; padding:30px 22px 60px; }
+.welcome { display:flex; justify-content:space-between; align-items:end; gap:18px; margin-bottom:23px; }
+.eyebrow { color:var(--good); text-transform:uppercase; letter-spacing:1.7px; font-weight:800; font-size:10px; }
+h2 { font-family:var(--site-font-heading); font-size:calc(30px * var(--site-heading-scale)); font-weight:600; margin:5px 0 4px; color:var(--text); }
+.sub { color:var(--muted); font-size:13px; margin:0; }
+.date-label { color:var(--muted); font-size:12px; }
+.summary-grid { display:grid; grid-template-columns:1.35fr 1fr 1fr; gap:14px; margin-bottom:18px; }
+.summary-card { background:var(--surface); border:1px solid var(--line); border-radius:calc(18px * var(--site-radius-scale)); padding:20px; box-shadow:var(--shadow); }
+.summary-card.primary { background:var(--site-primary); color:var(--site-on-primary); border-color:transparent; }
+.card-label { font-size:11px; text-transform:uppercase; letter-spacing:1.2px; opacity:.72; font-weight:700; }
+.amount { font-size:clamp(25px, 3vw, 36px); font-weight:750; letter-spacing:-1.4px; margin:9px 0 5px; font-variant-numeric:tabular-nums; }
+.card-note { font-size:11px; opacity:.72; }
+.summary-icon { float:right; font-size:22px; opacity:.8; }
+.actions-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px; }
+.panel { background:var(--surface); border:1px solid var(--line); border-radius:calc(18px * var(--site-radius-scale)); padding:21px; box-shadow:var(--shadow); min-width:0; }
+.panel-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
+.panel h3 { font-size:15px; margin:0; color:var(--text); }
+.panel-desc { color:var(--muted); font-size:11px; margin-top:4px; }
+.tag { background:var(--surface-soft); color:var(--muted); padding:6px 9px; border-radius:999px; font-size:10px; white-space:nowrap; }
+form .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+.field { display:flex; flex-direction:column; gap:6px; margin-bottom:11px; }
+.field.full { grid-column:1/-1; }
+label { font-size:11px; font-weight:700; color:var(--muted); }
+input, select { width:100%; min-width:0; border:1px solid var(--line); background:var(--surface); color:var(--text); border-radius:10px; padding:10px 11px; outline:none; font-size:12px; }
+input:focus, select:focus { border-color:var(--site-primary); box-shadow:0 0 0 3px color-mix(in srgb, var(--site-primary) 13%, transparent); }
+.btn { border:0; border-radius:10px; padding:11px 15px; font-size:12px; font-weight:750; transition:transform .15s, opacity .15s; }
+.btn:hover { transform:translateY(-1px); }
+.btn-primary { background:var(--site-primary); color:var(--site-on-primary); }
+.btn-secondary { background:var(--site-secondary); color:var(--site-on-secondary); }
+.btn-quiet { background:var(--surface-soft); color:var(--text); }
+.btn-danger { background:#f8e7e4; color:#9b3f37; }
+.btn-block { width:100%; }
+.category-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.category-card { border:1px solid var(--line); border-radius:14px; padding:14px; background:var(--surface); min-width:0; }
+.category-top { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.category-icon { width:31px; height:31px; display:grid; place-items:center; border-radius:10px; background:var(--surface-soft); font-size:16px; }
+.category-percent { font-size:10px; color:var(--muted); font-weight:700; }
+.category-name { font-size:11px; color:var(--muted); margin:11px 0 4px; min-height:27px; }
+.category-balance { font-size:18px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.progress { height:5px; border-radius:99px; background:var(--surface-soft); overflow:hidden; margin-top:11px; }
+.progress span { display:block; height:100%; border-radius:99px; background:var(--site-primary); }
+.category-foot { display:flex; justify-content:space-between; color:var(--muted); font-size:9px; margin-top:6px; }
+.section { margin-top:18px; }
+.two-col { display:grid; grid-template-columns:1.1fr .9fr; gap:16px; }
+.inline-form { display:grid; grid-template-columns:1.2fr .8fr .7fr auto; gap:8px; align-items:end; }
+.inline-form .field { margin:0; }
+.priority-list { display:flex; flex-direction:column; gap:9px; }
+.priority-item { border:1px solid var(--line); border-radius:12px; padding:11px 12px; display:flex; align-items:center; gap:10px; }
+.priority-item.done { opacity:.55; }
+.priority-item.done .buy-name { text-decoration:line-through; }
+.priority-check { width:17px; height:17px; accent-color:var(--site-primary); flex:0 0 auto; }
+.buy-info { min-width:0; flex:1; }
+.buy-name { font-size:12px; font-weight:750; overflow-wrap:anywhere; }
+.buy-meta { font-size:10px; color:var(--muted); margin-top:3px; }
+.buy-price { font-size:12px; font-weight:800; white-space:nowrap; }
+.priority-badge { font-size:9px; border-radius:99px; padding:4px 7px; background:var(--surface-soft); color:var(--muted); }
+.icon-btn { border:0; background:transparent; color:var(--muted); padding:5px; font-size:14px; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; min-width:520px; }
+th, td { text-align:left; padding:11px 9px; border-bottom:1px solid var(--line); font-size:11px; }
+th { color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:1px; }
+td strong { font-size:11px; }
+.type-income { color:var(--good); font-weight:800; }
+.type-expense { color:var(--bad); font-weight:800; }
+.empty { color:var(--muted); text-align:center; padding:25px 10px; font-size:12px; }
+.report-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.report-note { color:var(--muted); font-size:11px; line-height:1.6; margin:0 0 14px; }
+.toast { position:fixed; bottom:22px; left:50%; transform:translate(-50%,20px); opacity:0; pointer-events:none; background:#263a30; color:white; padding:11px 16px; border-radius:10px; font-size:12px; box-shadow:var(--shadow); transition:.25s; z-index:10; }
+.toast.show { opacity:1; transform:translate(-50%,0); }
+.section-toggle { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; }
+.section-toggle .toggle-copy { display:flex; flex-direction:column; gap:4px; }
+.section-toggle .toggle-title { font-size:14px; font-weight:800; }
+.section-toggle .toggle-desc { color:var(--muted); font-size:11px; font-weight:400; }
+.toggle-arrow { font-size:16px; transition:transform .2s; }
+.section-toggle[aria-expanded="true"] .toggle-arrow { transform:rotate(180deg); }
+.collapsible-content[hidden] { display:none!important; }
+.summary-grid.compact { margin:0 0 16px; }
+.summary-grid.compact .summary-card { box-shadow:none; }
+.wish-category-tabs { display:flex; flex-wrap:wrap; gap:7px; margin:14px 0; }
+.wish-category-tabs button { border:1px solid var(--line); border-radius:999px; padding:7px 11px; background:var(--surface-soft); color:var(--text); font-size:10px; font-weight:750; }
+.wish-category-tabs button.active { background:var(--site-primary); border-color:var(--site-primary); color:white; }
+.wish-group { margin-top:13px; }
+.wish-group-title { display:flex; justify-content:space-between; align-items:center; font-size:11px; font-weight:800; margin:0 0 8px; color:var(--text); }
+.wish-group-title span { color:var(--muted); font-size:10px; font-weight:600; }
+@media print { .collapsible-content[hidden] { display:block!important; } .section-toggle, .wish-category-tabs { display:none!important; } }
+.footer { text-align:center; color:var(--muted); font-size:10px; padding:20px; }
+@media(max-width:850px) { .summary-grid{grid-template-columns:1fr 1fr}.summary-card.primary{grid-column:1/-1}.category-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr} }
+@media(max-width:600px) { main{padding:22px 14px 40px}.topbar{padding:14px}.top-actions .pill{display:none}.welcome{align-items:start;flex-direction:column}.summary-grid,.actions-grid{grid-template-columns:1fr}.summary-card.primary{grid-column:auto}.inline-form{grid-template-columns:1fr 1fr}.inline-form .field:first-child{grid-column:1/-1}.inline-form button{grid-column:1/-1}.category-grid{gap:9px}.panel{padding:16px}.brand h1{font-size:22px} }
+@media print { body{background:white!important;color:#111!important}.topbar{background:#315c4c!important;print-color-adjust:exact}.no-print, .actions-grid, #shoppingPanel, .footer{display:none!important} main{padding:10px;max-width:none}.panel,.summary-card,.category-card{box-shadow:none;break-inside:avoid}.summary-grid{grid-template-columns:repeat(3,1fr)}.category-grid{grid-template-columns:repeat(4,1fr)} }
+</style>
+
+<meta name="theme-color" content="#315c4c">
+<meta name="description" content="PesoPlan — a thoughtful personal budget tracker.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+.cloud-account-btn { border:1px solid rgba(255,255,255,.35); background:transparent; color:white; border-radius:999px; padding:8px 12px; font-size:11px; font-weight:700; }
+.cloud-account-btn:hover { background:rgba(255,255,255,.12); }
+.cloud-modal { position:fixed; inset:0; z-index:30; background:rgba(15,25,20,.58); display:grid; place-items:center; padding:18px; }
+.cloud-modal[hidden] { display:none!important; }
+.cloud-dialog { width:min(100%,430px); background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:18px; padding:22px; box-shadow:0 24px 70px rgba(0,0,0,.22); }
+.cloud-dialog h3 { margin:0 0 6px; font-family:var(--site-font-heading); font-size:23px; }
+.cloud-dialog p { color:var(--muted); font-size:12px; line-height:1.6; margin:0 0 16px; }
+.cloud-dialog .field { margin-bottom:12px; }
+.cloud-dialog-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:14px; }
+.cloud-dialog .cloud-status { margin-top:12px; min-height:18px; font-size:11px; color:var(--muted); }
+.cloud-dialog .close-cloud { float:right; border:0; background:transparent; color:var(--muted); font-size:20px; cursor:pointer; }
+#cloudAccountSummary { font-size:11px; color:var(--muted); overflow-wrap:anywhere; margin:10px 0; }
+@media(max-width:600px) { .cloud-account-btn { padding:7px 9px; font-size:10px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">₱</div><div><h1>PesoPlan</h1><small>Your money, thoughtfully divided</small></div></div>
+    <div class="top-actions"><span class="pill">PERSONAL BUDGET</span><span id="saveStatus">● Saved on this device</span><button class="cloud-account-btn" id="cloudAccountBtn" type="button">☁ Connect account</button></div>
+  </header>
+  <main>
+    <div class="welcome">
+      <div><div class="eyebrow">Your financial overview</div><h2>Make every peso count.</h2><p class="sub">Track what comes in, what goes out, and what remains for each part of your life.</p></div>
+      <div class="date-label" id="todayLabel"></div>
+    </div>
+    <section class="summary-grid" aria-label="Available capital">
+      <div class="summary-card primary" style="grid-column:1/-1"><span class="summary-icon">◈</span><div class="card-label">Available capital</div><div class="amount" id="totalBalance">₱0.00</div><div class="card-note">Your current total across all categories</div></div>
+    </section>
+
+    <section class="actions-grid no-print">
+      <div class="panel">
+        <div class="panel-head"><div><h3>＋ Add money received</h3><div class="panel-desc">Every amount you add is distributed automatically.</div></div><span class="tag">INCOME</span></div>
+        <form id="incomeForm">
+          <div class="field-grid">
+            <div class="field"><label for="incomeAmount">Amount (₱)</label><input id="incomeAmount" type="number" min="0.01" step="0.01" placeholder="e.g. 100" required></div>
+            <div class="field"><label for="incomeDate">Date received</label><input id="incomeDate" type="date" required></div>
+            <div class="field full"><label for="incomeNote">Source / Note (optional)</label><input id="incomeNote" type="text" maxlength="80" placeholder="e.g. Allowance, gift, extra income"></div>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Add to my capital</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>− Record an expense</h3><div class="panel-desc">Only the selected category and your total capital will decrease.</div></div><span class="tag">EXPENSE</span></div>
+        <form id="expenseForm">
+          <div class="field-grid">
+            <div class="field"><label for="expenseAmount">Amount (₱)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="e.g. 25" required></div>
+            <div class="field"><label for="expenseDate">Date purchased</label><input id="expenseDate" type="date" required></div>
+            <div class="field"><label for="expenseCategory">Expense category</label><select id="expenseCategory" required></select></div>
+            <div class="field"><label for="expenseNote">What did you buy?</label><input id="expenseNote" type="text" maxlength="80" placeholder="e.g. Hair clip" required></div>
+          </div>
+          <button class="btn btn-secondary btn-block" type="submit">Save expense</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <div class="panel-head"><div><h3>My category balances</h3><div class="panel-desc">Your incoming money is split using your chosen percentages.</div></div><span class="tag">100% ALLOCATION</span></div>
+        <div class="category-grid" id="categoryGrid"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <button class="btn btn-quiet btn-block section-toggle" id="shoppingToggle" type="button" aria-expanded="false" aria-controls="shoppingPanel">
+          <span class="toggle-copy"><span class="toggle-title">♡ Things I want to buy</span><span class="toggle-desc">Open your wishlist, organized by category.</span></span><span class="toggle-arrow">⌄</span>
+        </button>
+        <div id="shoppingPanel" class="collapsible-content" hidden style="margin-top:18px">
+          <div class="panel-head"><div><h3>My shopping list</h3><div class="panel-desc">Add items and view them one category at a time.</div></div><span class="tag">WISHLIST</span></div>
+          <form id="wishForm" class="inline-form no-print">
+            <div class="field"><label for="wishName">Item</label><input id="wishName" maxlength="70" placeholder="What do you want to buy?" required></div>
+            <div class="field"><label for="wishCategory">Category</label><select id="wishCategory"></select></div>
+            <div class="field"><label for="wishAmount">Estimated ₱</label><input id="wishAmount" type="number" min="0" step="0.01" placeholder="0.00"></div>
+            <button class="btn btn-primary" type="submit">＋ Add</button>
+          </form>
+          <div class="field no-print" style="max-width:190px;margin-top:12px"><label for="wishPriority">Priority for next item</label><select id="wishPriority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+          <div id="wishCategoryTabs" class="wish-category-tabs no-print"></div>
+          <div class="priority-list" id="wishList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <button class="btn btn-quiet btn-block section-toggle" id="reportsToggle" type="button" aria-expanded="false" aria-controls="reportsPanel">
+          <span class="toggle-copy"><span class="toggle-title">▤ Reports & data</span><span class="toggle-desc">View totals, transaction counts, and export your records.</span></span><span class="toggle-arrow">⌄</span>
+        </button>
+        <div id="reportsPanel" class="collapsible-content" hidden style="margin-top:18px">
+          <div class="summary-grid compact" aria-label="Financial totals">
+            <div class="summary-card"><span class="summary-icon">↗</span><div class="card-label">Total money received</div><div class="amount" id="totalIncome">₱0.00</div><div class="card-note">All income and added capital</div></div>
+            <div class="summary-card"><span class="summary-icon">↘</span><div class="card-label">Total expenses</div><div class="amount" id="totalExpenses">₱0.00</div><div class="card-note">All recorded purchases and bills</div></div>
+          </div>
+          <p class="report-note">Your entries are saved automatically in this browser on this device. Download a CSV report to keep a copy, or print this page to save a simple PDF report.</p>
+          <div class="report-actions no-print"><button class="btn btn-primary" id="csvBtn">↓ Download CSV report</button><button class="btn btn-quiet" id="printBtn">▤ Print / Save PDF</button><button class="btn btn-quiet" id="backupBtn">Export backup</button><button class="btn btn-quiet" id="restoreBtn">Import backup</button><input type="file" id="restoreFile" accept="application/json" hidden></div>
+          <div style="border-top:1px solid var(--line);margin:18px 0 13px"></div>
+          <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px"><span style="color:var(--muted)">Transactions recorded</span><strong id="transactionCount">0</strong></div>
+          <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-top:10px"><span style="color:var(--muted)">Items on your list</span><strong id="wishCount">0</strong></div>
+          <p class="report-note" style="margin-top:17px">Tip: Export a backup regularly, especially before clearing browser data or changing devices.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section panel">
+      <button class="btn btn-quiet btn-block section-toggle" id="activityToggle" type="button" aria-expanded="false" aria-controls="activityPanel">
+        <span class="toggle-copy"><span class="toggle-title">◷ Recent activity</span><span class="toggle-desc">Show your money received and expenses, newest first.</span></span><span class="toggle-arrow">⌄</span>
+      </button>
+      <div id="activityPanel" class="collapsible-content" hidden style="margin-top:18px">
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Category</th><th>Amount</th><th class="no-print">Action</th></tr></thead><tbody id="transactionRows"></tbody></table></div>
+      </div>
+    </section>
+    <div class="footer">PesoPlan · A simple way to keep your pesos organized</div>
+  </main>
+</div>
+
+<div class="cloud-modal" id="cloudModal" hidden>
+  <div class="cloud-dialog" role="dialog" aria-modal="true" aria-labelledby="cloudTitle">
+    <button class="close-cloud" id="cloudCloseBtn" type="button" aria-label="Close">×</button>
+    <h3 id="cloudTitle">Sync PesoPlan</h3>
+    <p id="cloudIntro">Sign in with the same account on your phone and computer to access the same budget records.</p>
+    <div id="cloudAuthFields">
+      <div class="field"><label for="cloudEmail">Email address</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+      <div class="field"><label for="cloudPassword">Password</label><input id="cloudPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters"></div>
+      <div class="cloud-dialog-actions">
+        <button class="btn btn-primary" id="cloudSignInBtn" type="button">Sign in</button>
+        <button class="btn btn-secondary" id="cloudSignUpBtn" type="button">Create account</button>
+      </div>
+    </div>
+    <div id="cloudSignedIn" hidden>
+      <div id="cloudAccountSummary"></div>
+      <button class="btn btn-danger btn-block" id="cloudSignOutBtn" type="button">Sign out</button>
+    </div>
+    <div class="cloud-status" id="cloudModalStatus" role="status"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<script>
+(() => {
+  const CATEGORIES = [
+    {id:'aesthetics', name:'Aesthetics', percent:20, icon:'✿'},
+    {id:'food', name:'Food', percent:20, icon:'♡'},
+    {id:'hygiene', name:'Hygiene / Skincare', percent:10, icon:'✧'},
+    {id:'gadgets', name:'Gadgets', percent:10, icon:'▣'},
+    {id:'house', name:'House Stuff', percent:10, icon:'⌂'},
+    {id:'savings', name:'Savings', percent:10, icon:'◈'},
+    {id:'bills', name:'Bills', percent:20, icon:'▤'}
+  ];
+  const KEY = 'pesoplan_data_v1';
+  const peso = n => '₱' + Number(n || 0).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  const makeId = () => (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') ? globalThis.crypto.randomUUID() : `pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const blankBalances = () => Object.fromEntries(CATEGORIES.map(c => [c.id, 0]));
+  let state = load();
+  let selectedWishCategory = 'all';
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY));
+      if (saved && saved.balances && Array.isArray(saved.transactions) && Array.isArray(saved.wishes)) {
+        return {balances:{...blankBalances(),...saved.balances}, transactions:saved.transactions, wishes:saved.wishes};
+      }
+    } catch (e) {}
+    return {balances:blankBalances(), transactions:[], wishes:[]};
+  }
+  // Cloud sync uses one private JSON record per signed-in user.
+  // Only the Supabase project URL and publishable/anon key belong in the browser.
+  let cloudClient = null;
+  let cloudUser = null;
+  let cloudSyncTimer = null;
+  let cloudPollTimer = null;
+  let lastCloudUpdatedAt = null;
+  let cloudBusy = false;
+
+  const cloudModal = document.getElementById('cloudModal');
+  const cloudModalStatus = document.getElementById('cloudModalStatus');
+  const cloudConfigured = Boolean(
+    window.PESOPLAN_SUPABASE_URL &&
+    window.PESOPLAN_SUPABASE_ANON_KEY &&
+    !String(window.PESOPLAN_SUPABASE_URL).includes('YOUR_') &&
+    !String(window.PESOPLAN_SUPABASE_ANON_KEY).includes('YOUR_')
+  );
+
+  function setCloudStatus(message) {
+    const status = document.getElementById('saveStatus');
+    if (status) status.textContent = message;
+    if (cloudModalStatus) cloudModalStatus.textContent = message;
+  }
+
+  function updateCloudAccountUI() {
+    const btn = document.getElementById('cloudAccountBtn');
+    const fields = document.getElementById('cloudAuthFields');
+    const signedIn = document.getElementById('cloudSignedIn');
+    const summary = document.getElementById('cloudAccountSummary');
+    if (!cloudConfigured) {
+      btn.textContent = '☁ Set up cloud';
+      btn.title = 'Add your Supabase project settings first';
+      fields.hidden = true;
+      signedIn.hidden = true;
+      cloudModalStatus.textContent = 'Cloud setup is not finished. Follow the README and add your Supabase project URL and publishable key.';
+      return;
+    }
+    fields.hidden = Boolean(cloudUser);
+    signedIn.hidden = !cloudUser;
+    btn.textContent = cloudUser ? '☁ Account' : '☁ Sign in';
+    if (cloudUser) {
+      summary.textContent = 'Signed in as ' + cloudUser.email + '. Your records sync to this account.';
+    }
+  }
+
+  function openCloudModal() {
+    cloudModal.hidden = false;
+    updateCloudAccountUI();
+  }
+  function closeCloudModal() { cloudModal.hidden = true; }
+
+  async function pushCloudData() {
+    if (!cloudClient || !cloudUser || cloudBusy) return;
+    cloudBusy = true;
+    try {
+      const { data, error } = await cloudClient
+        .from('pesoplan_data')
+        .upsert({
+          user_id: cloudUser.id,
+          data: state,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' })
+        .select('updated_at')
+        .single();
+      if (error) throw error;
+      lastCloudUpdatedAt = data?.updated_at || new Date().toISOString();
+      setCloudStatus('● Synced to cloud');
+    } catch (error) {
+      console.error('PesoPlan cloud save:', error);
+      setCloudStatus('● Saved on this device · cloud sync pending');
+    } finally {
+      cloudBusy = false;
+    }
+  }
+
+  function queueCloudSave() {
+    if (!cloudUser || !cloudClient) return;
+    clearTimeout(cloudSyncTimer);
+    setCloudStatus('● Saving to cloud…');
+    cloudSyncTimer = setTimeout(pushCloudData, 500);
+  }
+
+  function applyCloudState(remoteState) {
+    if (!remoteState || !remoteState.balances ||
+        !Array.isArray(remoteState.transactions) ||
+        !Array.isArray(remoteState.wishes)) return false;
+    state = {
+      balances: { ...blankBalances(), ...remoteState.balances },
+      transactions: remoteState.transactions,
+      wishes: remoteState.wishes
+    };
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    render();
+    return true;
+  }
+
+  async function pullCloudData(showMessage = false) {
+    if (!cloudClient || !cloudUser || cloudBusy) return;
+    try {
+      const { data, error } = await cloudClient
+        .from('pesoplan_data')
+        .select('data, updated_at')
+        .eq('user_id', cloudUser.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && data.updated_at && data.updated_at !== lastCloudUpdatedAt) {
+        if (applyCloudState(data.data)) {
+          lastCloudUpdatedAt = data.updated_at;
+          setCloudStatus('● Updated from cloud');
+        }
+      } else if (showMessage) {
+        setCloudStatus('● Cloud data is up to date');
+      }
+    } catch (error) {
+      console.error('PesoPlan cloud load:', error);
+      setCloudStatus('● Offline · changes saved on this device');
+    }
+  }
+
+  async function activateCloudSession(session) {
+    cloudUser = session?.user || null;
+    clearInterval(cloudPollTimer);
+    updateCloudAccountUI();
+    if (!cloudUser) {
+      lastCloudUpdatedAt = null;
+      setCloudStatus('● Saved on this device');
+      return;
+    }
+
+    setCloudStatus('● Loading your cloud records…');
+    try {
+      const { data, error } = await cloudClient
+        .from('pesoplan_data')
+        .select('data, updated_at')
+        .eq('user_id', cloudUser.id)
+        .maybeSingle();
+      if (error) throw error;
+
+      if (data) {
+        const localHasData = state.transactions.length > 0 ||
+          state.wishes.length > 0 ||
+          Object.values(state.balances).some(value => Number(value) !== 0);
+        if (localHasData) {
+          // Preserve a copy of this browser's current data before cloud data replaces it.
+          try { localStorage.setItem(KEY + '_before_cloud_login', JSON.stringify(state)); } catch (e) {}
+        }
+        applyCloudState(data.data);
+        lastCloudUpdatedAt = data.updated_at;
+        setCloudStatus('● Synced to cloud');
+      } else {
+        // First sign-in: migrate this browser's existing tracker data to the new cloud account.
+        await pushCloudData();
+      }
+      cloudPollTimer = setInterval(() => pullCloudData(false), 15000);
+      closeCloudModal();
+    } catch (error) {
+      console.error('PesoPlan cloud initialization:', error);
+      setCloudStatus('● Could not load cloud data · local data is safe');
+      cloudModalStatus.textContent = 'Could not connect to your cloud database. Check your setup and SQL policies. Your local browser data has not been deleted.';
+    }
+    updateCloudAccountUI();
+  }
+
+  async function initializeCloud() {
+    updateCloudAccountUI();
+    if (!cloudConfigured || !window.supabase?.createClient) return;
+    cloudClient = window.supabase.createClient(
+      window.PESOPLAN_SUPABASE_URL,
+      window.PESOPLAN_SUPABASE_ANON_KEY
+    );
+    const { data: { session } } = await cloudClient.auth.getSession();
+    await activateCloudSession(session);
+    cloudClient.auth.onAuthStateChange((_event, session) => {
+      // Defer network work so the auth callback does not block Supabase's internal queue.
+      setTimeout(() => activateCloudSession(session), 0);
+    });
+  }
+
+  document.getElementById('cloudAccountBtn').addEventListener('click', openCloudModal);
+  document.getElementById('cloudCloseBtn').addEventListener('click', closeCloudModal);
+  cloudModal.addEventListener('click', event => { if (event.target === cloudModal) closeCloudModal(); });
+
+  document.getElementById('cloudSignUpBtn').addEventListener('click', async () => {
+    if (!cloudClient) return;
+    const email = document.getElementById('cloudEmail').value.trim();
+    const password = document.getElementById('cloudPassword').value;
+    if (!email || password.length < 6) {
+      cloudModalStatus.textContent = 'Enter a valid email and a password with at least 6 characters.';
+      return;
+    }
+    cloudModalStatus.textContent = 'Creating your account…';
+    const { data, error } = await cloudClient.auth.signUp({ email, password });
+    if (error) cloudModalStatus.textContent = error.message;
+    else if (data.session) {
+      cloudModalStatus.textContent = 'Account created. Connecting…';
+      await activateCloudSession(data.session);
+    } else {
+      cloudModalStatus.textContent = 'Account created! Check your email to confirm it, then sign in.';
+    }
+  });
+
+  document.getElementById('cloudSignInBtn').addEventListener('click', async () => {
+    if (!cloudClient) return;
+    const email = document.getElementById('cloudEmail').value.trim();
+    const password = document.getElementById('cloudPassword').value;
+    if (!email || !password) {
+      cloudModalStatus.textContent = 'Enter your email and password.';
+      return;
+    }
+    cloudModalStatus.textContent = 'Signing in…';
+    const { data, error } = await cloudClient.auth.signInWithPassword({ email, password });
+    if (error) cloudModalStatus.textContent = error.message;
+    else await activateCloudSession(data.session);
+  });
+
+  document.getElementById('cloudSignOutBtn').addEventListener('click', async () => {
+    if (!cloudClient) return;
+    const { error } = await cloudClient.auth.signOut();
+    if (error) cloudModalStatus.textContent = error.message;
+    else {
+      cloudUser = null;
+      clearInterval(cloudPollTimer);
+      updateCloudAccountUI();
+      setCloudStatus('● Signed out · local data remains on this device');
+    }
+  });
+
+  window.addEventListener('focus', () => { if (cloudUser) pullCloudData(false); });
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      document.getElementById('saveStatus').textContent = cloudUser ? '● Saved on this device · syncing…' : '● Saved on this device';
+      queueCloudSave();
+    } catch (error) {
+      document.getElementById('saveStatus').textContent = '● Browser storage unavailable';
+      toast('Your browser blocked saving. Please allow site storage or export a backup.');
+    }
+  }
+  function toast(message) {
+    const el = document.getElementById('toast'); el.textContent = message; el.classList.add('show');
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+  function category(id) { return CATEGORIES.find(c => c.id === id); }
+  function total() { return CATEGORIES.reduce((sum,c) => sum + Number(state.balances[c.id] || 0), 0); }
+  function sumType(type) { return state.transactions.filter(t => t.type === type).reduce((s,t) => s + Number(t.amount), 0); }
+  function render() {
+    document.getElementById('totalBalance').textContent = peso(total());
+    document.getElementById('totalIncome').textContent = peso(sumType('income'));
+    document.getElementById('totalExpenses').textContent = peso(sumType('expense'));
+    document.getElementById('transactionCount').textContent = state.transactions.length;
+    document.getElementById('wishCount').textContent = state.wishes.length;
+    const grid = document.getElementById('categoryGrid');
+    grid.innerHTML = CATEGORIES.map(c => {
+      const balance = Number(state.balances[c.id] || 0);
+      const allocated = sumType('income') * c.percent / 100;
+      const used = Math.max(0, allocated - balance);
+      const pct = allocated > 0 ? Math.max(0, Math.min(100, balance / allocated * 100)) : 0;
+      return `<article class="category-card"><div class="category-top"><span class="category-icon">${c.icon}</span><span class="category-percent">${c.percent}%</span></div><div class="category-name">${c.name}</div><div class="category-balance">${peso(balance)}</div><div class="progress"><span style="width:${pct}%"></span></div><div class="category-foot"><span>Remaining</span><span>${allocated ? peso(used)+' used' : 'No funds yet'}</span></div></article>`;
+    }).join('');
+    renderTransactions(); renderWishes();
+  }
+  function renderTransactions() {
+    const rows = document.getElementById('transactionRows');
+    const sorted = [...state.transactions].sort((a,b) => b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
+    rows.innerHTML = sorted.length ? sorted.map(t => {
+      const isIncome = t.type === 'income';
+      return `<tr><td>${escapeHTML(t.date)}</td><td class="${isIncome?'type-income':'type-expense'}">${isIncome?'Money received':'Expense'}</td><td><strong>${escapeHTML(t.note || (isIncome?'Added capital':'Purchase'))}</strong></td><td>${isIncome?'All categories':escapeHTML(category(t.category)?.name || '—')}</td><td class="${isIncome?'type-income':'type-expense'}">${isIncome?'+':'−'}${peso(t.amount)}</td><td class="no-print"><button class="icon-btn" title="Delete transaction and reverse its effect" data-delete-transaction="${t.id}">✕</button></td></tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No transactions yet. Add money received or record your first expense.</td></tr>';
+  }
+  function renderWishes() {
+    const list = document.getElementById('wishList');
+    const tabs = document.getElementById('wishCategoryTabs');
+    const sorted = [...state.wishes].sort((a,b) => Number(a.done)-Number(b.done) || ({High:0,Medium:1,Low:2}[a.priority] - {High:0,Medium:1,Low:2}[b.priority]));
+    const counts = Object.fromEntries(CATEGORIES.map(c => [c.id, state.wishes.filter(w => w.category === c.id).length]));
+    tabs.innerHTML = `<button type="button" data-wish-filter="all" class="${selectedWishCategory==='all'?'active':''}">All (${state.wishes.length})</button>` +
+      CATEGORIES.filter(c => counts[c.id] > 0).map(c => `<button type="button" data-wish-filter="${c.id}" class="${selectedWishCategory===c.id?'active':''}">${c.icon} ${escapeHTML(c.name)} (${counts[c.id]})</button>`).join('');
+    const visible = selectedWishCategory === 'all' ? sorted : sorted.filter(w => w.category === selectedWishCategory);
+    if (!visible.length) {
+      list.innerHTML = '<div class="empty">No items in this category yet. Add something you are planning to buy.</div>';
+      return;
+    }
+    const groups = selectedWishCategory === 'all' ? CATEGORIES.filter(c => visible.some(w => w.category === c.id)) : [category(selectedWishCategory)].filter(Boolean);
+    list.innerHTML = groups.map(c => {
+      const items = visible.filter(w => w.category === c.id);
+      return `<div class="wish-group"><div class="wish-group-title">${c.icon} ${escapeHTML(c.name)} <span>${items.length} item${items.length===1?'':'s'}</span></div>` +
+        items.map(w => `<div class="priority-item ${w.done?'done':''}"><input class="priority-check no-print" type="checkbox" aria-label="Mark ${escapeHTML(w.name)} as purchased" data-wish-check="${w.id}" ${w.done?'checked':''}><div class="buy-info"><div class="buy-name">${escapeHTML(w.name)}</div><div class="buy-meta">${w.priority} priority</div></div><span class="buy-price">${peso(w.amount)}</span><button class="icon-btn no-print" title="Remove item" data-delete-wish="${w.id}">✕</button></div>`).join('') + '</div>';
+    }).join('');
+  }
+  function escapeHTML(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+  function addTransaction(t) { state.transactions.push(t); save(); render(); }
+  function initSelects() {
+    const options = CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('expenseCategory').innerHTML = options;
+    document.getElementById('wishCategory').innerHTML = options;
+  }
+  document.getElementById('incomeForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const amount = Number(document.getElementById('incomeAmount').value);
+    const date = document.getElementById('incomeDate').value;
+    if (!Number.isFinite(amount) || amount <= 0 || !date) return toast('Enter a valid amount and date.');
+    CATEGORIES.forEach(c => state.balances[c.id] += amount * c.percent / 100);
+    addTransaction({id:makeId(), type:'income', amount, date, note:document.getElementById('incomeNote').value.trim(), createdAt:Date.now()});
+    e.target.reset(); document.getElementById('incomeDate').value = today(); toast('Money added and distributed across your categories.');
+  });
+  document.getElementById('expenseForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const amount = Number(document.getElementById('expenseAmount').value);
+    const date = document.getElementById('expenseDate').value;
+    const cat = document.getElementById('expenseCategory').value;
+    const note = document.getElementById('expenseNote').value.trim();
+    if (!Number.isFinite(amount) || amount <= 0 || !date || !note) return toast('Complete all expense details with a valid amount.');
+    if (amount > Number(state.balances[cat] || 0) + 0.000001) return toast(`Not enough in ${category(cat).name}. Available: ${peso(state.balances[cat])}`);
+    state.balances[cat] -= amount;
+    if (Math.abs(state.balances[cat]) < 0.000001) state.balances[cat] = 0;
+    addTransaction({id:makeId(), type:'expense', amount, date, category:cat, note, createdAt:Date.now()});
+    e.target.reset(); document.getElementById('expenseDate').value = today(); toast('Expense saved. Only that category was deducted.');
+  });
+  document.getElementById('wishForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = document.getElementById('wishName').value.trim();
+    if (!name) return;
+    state.wishes.push({id:makeId(), name, category:document.getElementById('wishCategory').value, amount:Number(document.getElementById('wishAmount').value)||0, priority:document.getElementById('wishPriority').value, done:false});
+    save(); render(); e.target.reset(); toast('Added to your buy list.');
+  });
+  function setupToggle(buttonId, panelId) {
+    const button = document.getElementById(buttonId);
+    const panel = document.getElementById(panelId);
+    button.addEventListener('click', () => {
+      const opening = panel.hidden;
+      panel.hidden = !opening;
+      button.setAttribute('aria-expanded', String(opening));
+    });
+  }
+  setupToggle('shoppingToggle', 'shoppingPanel');
+  setupToggle('reportsToggle', 'reportsPanel');
+  setupToggle('activityToggle', 'activityPanel');
+
+  document.getElementById('wishCategoryTabs').addEventListener('click', e => {
+    const button = e.target.closest('[data-wish-filter]');
+    if (!button) return;
+    selectedWishCategory = button.dataset.wishFilter;
+    renderWishes();
+  });
+
+  document.addEventListener('click', e => {
+    const delT = e.target.closest('[data-delete-transaction]');
+    if (delT) {
+      const t = state.transactions.find(x => x.id === delT.dataset.deleteTransaction); if (!t) return;
+      const promptText = t.type === 'income' ? 'Delete this income? Its distributed amount will be removed from all categories.' : 'Delete this expense? Its amount will be returned to the category.';
+      if (!confirm(promptText)) return;
+      if (t.type === 'income') CATEGORIES.forEach(c => state.balances[c.id] -= t.amount*c.percent/100);
+      else state.balances[t.category] += t.amount;
+      state.transactions = state.transactions.filter(x => x.id !== t.id); save(); render(); toast('Transaction deleted and balance adjusted.');
+    }
+    const delW = e.target.closest('[data-delete-wish]');
+    if (delW) { state.wishes = state.wishes.filter(w => w.id !== delW.dataset.deleteWish); save(); render(); }
+  });
+  document.addEventListener('change', e => {
+    const check = e.target.closest('[data-wish-check]');
+    if (check) { const w = state.wishes.find(x => x.id === check.dataset.wishCheck); if (w) { w.done = check.checked; save(); renderWishes(); } }
+  });
+  function csvCell(v) { return '"' + String(v ?? '').replace(/"/g,'""') + '"'; }
+  document.getElementById('csvBtn').addEventListener('click', () => {
+    const lines = [['PesoPlan Report'],['Generated',new Date().toLocaleString()],[],['CATEGORY BALANCES'],['Category','Allocation','Remaining']];
+    CATEGORIES.forEach(c => lines.push([c.name,c.percent+'%',Number(state.balances[c.id]||0).toFixed(2)]));
+    lines.push([],['SUMMARY'],['Total money received',sumType('income').toFixed(2)],['Total expenses',sumType('expense').toFixed(2)],['Available capital',total().toFixed(2)],[],['TRANSACTIONS'],['Date','Type','Description','Category','Amount']);
+    state.transactions.forEach(t => lines.push([t.date,t.type,t.note || '',t.category ? category(t.category)?.name : 'All categories',t.amount]));
+    lines.push([],['BUY LIST'],['Item','Category','Estimated amount','Priority','Purchased']);
+    state.wishes.forEach(w => lines.push([w.name,category(w.category)?.name,w.amount,w.priority,w.done?'Yes':'No']));
+    const csv = '\uFEFF' + lines.map(row => row.map(csvCell).join(',')).join('\r\n');
+    downloadBlob(csv,'pesoplan-report-'+today()+'.csv','text/csv;charset=utf-8;'); toast('CSV report downloaded.');
+  });
+  function downloadBlob(content, filename, type) { const blob = new Blob([content],{type}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+  document.getElementById('backupBtn').addEventListener('click', () => { downloadBlob(JSON.stringify({app:'PesoPlan',version:1,exportedAt:new Date().toISOString(),...state},null,2),'pesoplan-backup-'+today()+'.json','application/json'); toast('Backup exported.'); });
+  document.getElementById('restoreBtn').addEventListener('click', () => document.getElementById('restoreFile').click());
+  document.getElementById('restoreFile').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!data.balances || !Array.isArray(data.transactions) || !Array.isArray(data.wishes)) throw new Error('Invalid backup');
+      if (!confirm('Import this backup? It will replace the data currently saved in this browser.')) return;
+      state = {balances:{...blankBalances(),...data.balances},transactions:data.transactions,wishes:data.wishes}; save(); render(); toast('Backup imported successfully.');
+    } catch (err) { toast('Could not import this file. Please choose a valid PesoPlan backup.'); }
+    e.target.value='';
+  });
+  document.getElementById('todayLabel').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('incomeDate').value = today(); document.getElementById('expenseDate').value = today();
+  initSelects(); render();
+  initializeCloud();
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(error => console.error("PesoPlan offline setup failed:", error));
+  });
+}
+</script>
+</body>
+</html>
